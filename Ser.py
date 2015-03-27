@@ -151,7 +151,7 @@ if  __name__=="__main__":
 					#write data to serial port
 					ser.write(data) 
 					#read data from serial port. The size of reciev data is 136
-					reponse = ser.read(136)
+					reponse = ser.read(134)
 					liste.append (reponse)#save in a list		
 					second = 1
 				#read every 5 seconds
@@ -165,7 +165,7 @@ if  __name__=="__main__":
 					#give the serial port somme time to receive the data
 					time.sleep(3)
 					#read data
-					reponse = ser.read(136)
+					reponse = ser.read(134)
 					liste.append (reponse)#save in a list
 			    #Exit of while
 				test = test - 1	
