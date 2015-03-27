@@ -68,6 +68,7 @@ def findHIDDevice(mbed_vendor_id, mbed_product_id):
 				while i<17:
 					bites+=hid_device.read(endpoint.bEndpointAddress,endpoint.wMaxPacketSize,0)
 					i+=1
+				del bites[133:136]
 				a.append("".join([chr(x) for x in bites]))
 				second = 1
 			time.sleep(5)
@@ -87,6 +88,7 @@ def findHIDDevice(mbed_vendor_id, mbed_product_id):
 				while i<17:
 					bites+=hid_device.read(endpoint.bEndpointAddress,endpoint.wMaxPacketSize,0)
 					i+=1
+				del bites[133:136]
 				a.append("".join([chr(x) for x in bites]))
 				second = 1
 			test = test - 1
