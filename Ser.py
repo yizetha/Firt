@@ -112,7 +112,7 @@ if  __name__=="__main__":
 #---------------Wite/Read the Serial port------------------
 	
 	#find the differents serials ports connects on BBB
-	ports=glob.glob('/dev/tty[A-Za-z]*')
+	ports=glob.glob('/dev/ttyUSB*')
 	print ports
 	for port in ports:
 		#If Imeon is not connected, go exit
