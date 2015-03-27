@@ -32,22 +32,28 @@ import atexit
 import glob
 from select import select
 
+#----------------------------------------------------------
+# code to executate at the set up system.
+# Write and read a serial port
+#----------------------------------------------------------
+start=time.time()
 #time.sleep(30)
-#------------------------------------------
-#Connect to serial port
+#----------------------------------------------------------
+# 				Connect the serial device
+#----------------------------------------------------------
 def executeCommand(the_command):
     temp_list = os.popen(the_command).read()
     return temp_list
 
 def getDMESG():
-    return executeCommand("dmesg | grep ttyUSB0")
+    return executeCommand("dmesg | grep ttyUSB1")
    
 def modPROBE():
     return executeCommand("modprobe usbserial vendor=0x067b product=0x2303")
 	
-#-------------------------------------------
-#Turn on the on board leds
-#-------------------------------------------
+#----------------------------------------------------------
+#				Turn on the BBB leds on board
+#----------------------------------------------------------
 leds = ['/sys/class/leds/beaglebone:green:usr0/brightness',
 		'/sys/class/leds/beaglebone:green:usr1/brightness',
 		'/sys/class/leds/beaglebone:green:usr2/brightness',
@@ -71,7 +77,9 @@ def toggle(x):
 		
 for i, val in enumerate(leds):
 		ledoff(i)
- 
+		
+#Connection with the Linux-terminal
+
 # save the terminal settings
 fd = sys.stdin.fileno()
 new_term = termios.tcgetattr(fd)
@@ -88,20 +96,28 @@ def set_normal_term():
 def set_curses_term():
     termios.tcsetattr(fd, termios.TCSAFLUSH, new_term)
 
+#----------------------------------------------------------
+# 						Main code
+#----------------------------------------------------------
 if  __name__=="__main__":
-
-	#Detect the serial port
+	
+#---------------Play with the BBB LEDS on board------------
+	for x in range(2, 0, -1):
+		toggle(x)
+	
+	#Detect and connect the serial port in Linux
 	modPROBE()
 	getDMESG()
 	
-	#--------------------------------------
-	#Serial port
-	#--------------------------------------
+#---------------Wite/Read the Serial port------------------
+	
+	#find the differents serials ports connects on BBB
 	ports=glob.glob('/dev/tty[A-Za-z]*')
-	#If Imeon is not connected, go exit
+	print ports
 	for port in ports:
+		#If Imeon is not connected, go exit
 		if port=='/dev/ttyUSB0':
-			#open serial port			
+			#open serial port
 			ser = serial.Serial(
 				    port='/dev/ttyUSB0',
 				    baudrate=2400,
@@ -109,66 +125,75 @@ if  __name__=="__main__":
 				    stopbits=serial.STOPBITS_ONE,
 				    bytesize=serial.EIGHTBITS
 				)
-			#Create a txt file
-			f=open("/home/debian/Desktop/Code/donnes.txt",'w')
+			#Create a .dat file
+			f=open("/home/debian/Desktop/Code/donnser.dat",'w')
 			f.write("Serial port: "+ser.portstr+"\n")
+			#Save the date/hour on the .dat
 			today=time.localtime()
 			type(today)
 			f.write(str(today.tm_year) + "/" + str(today.tm_mon) + "/" + str(today.tm_mday) + " " + str(today.tm_hour) + ":" + str(today.tm_min) + ":" + str(today.tm_sec)+"\n")
-			ser.flushInput() #flush input buffer, discarding all its contents
-			ser.flushOutput()#flush output buffer, aborting current output 
-			                 #and discard all that is in buffer
-			
-			#Read serial port for 1 minute
-			timeout = time.time() + 10   # 1 minute from now
+			#flush input buffer, discarding all its contents
+			#ser.flushInput() 
+			#flush output buffer, aborting current output 
+			#and discard all that is in buffer
+			#ser.flushOutput()
+			#Read serial port for X minutes
+			timeout = time.time() + 5   # 10 minutes from now
 			second = 0
-			a=[]
+			liste=[] #create a list for saving the read data in a .dat file
 			while True:
 				test = 0  
 				if second == 0:
-					#write data
+					#Data to write
 					data="QPIGS\r"
-					#read data
-					time.sleep(1)
+					#give somme time to seral port
+					time.sleep(2)
+					#write data to serial port
 					ser.write(data) 
+					#read data from serial port. The size of reciev data is 136
 					reponse = ser.read(136)
-					a.append (str(reponse))
-					#f.write("Data: "+data+"\n")
-					#f.write(reponse+"\n")			
-					#time.sleep(1)  #give the serial port some time to receive the data
+					liste.append (reponse)#save in a list		
 					second = 1
+				#read every 5 seconds
 				time.sleep(4)
+				#if the time of reading the serial port is done, exit of loop
 				if test == 5 or time.time() > timeout:
 					break
 				else: 							
 					#write data
 					ser.write(data)  
+					#give the serial port somme time to receive the data
+					time.sleep(3)
 					#read data
-					time.sleep(1)
 					reponse = ser.read(136)
-					a.append (str(reponse))
-					#f.write(reponse+"\n")
-					#time.sleep(1)  #give the serial port some time to receive the data
+					liste.append (reponse)#save in a list
 			    #Exit of while
 				test = test - 1	
+			#Saving the read data in .dat file
 			f.write("Data: "+data+"\n")
-			f.write("\n".join(map(lambda x: str(x), a)) + "\n")
-			#ser.write("SON\r")
-			#print "sound on"
-			#time.sleep(5)
-			#ser.write("SOFF\r")
-			#print "sound off"
+			#Convert the read data for being saved
+			f.write("\n".join(map(lambda x: x, liste)) + "\n")
+			#Turn on the sound in the IMEON
+			ser.write("SON\r")
+			#give somme minutes to IMEON to respond 
+			time.sleep(5)
+			#Turn off the sound in the IMEON
+			ser.write("SOFF\r")
+			#Close the .dat file and the serial port
 			f.close()		
-			ser.close()				
-	#---------------Leds------------
+			#flush input buffer, discarding all its contents
+			ser.flushInput() 
+			#flush output buffer, aborting current output 
+			#and discard all that is in buffer
+			ser.flushOutput()
+			ser.close()	
+			print "finir"			
+#---------------Play with the BBB LEDS on board------------
 	atexit.register(set_normal_term)
 	set_curses_term()
 	for x in range(0, 4, 1):
 		toggle(x)
- 
-	#for x in range(2, 0, -1):
-		#toggle(x)
-
+	print ("---%s seconds ---" % (time.time()-start))
 	#if len(reponse) != 0:
 		#print "read data: " + reponse
 	#else:
